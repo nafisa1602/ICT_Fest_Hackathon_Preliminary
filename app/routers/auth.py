@@ -1,6 +1,11 @@
 """Authentication endpoints: register, login, refresh, logout."""
+import threading
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+
+_refresh_lock = threading.Lock()
+used_refresh_jtis: set[str] = set()
 
 from ..auth import (
     create_access_token,
@@ -78,6 +83,12 @@ def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
     data = decode_token(payload.refresh_token)
     if data.get("type") != "refresh":
         raise AppError(401, "UNAUTHORIZED", "Wrong token type")
+    
+    jti = data.get("jti")
+    with _refresh_lock:
+        if jti in used_refresh_jtis:
+            raise AppError(401, "UNAUTHORIZED", "Token has been revoked")
+        used_refresh_jtis.add(jti)
     
     # Revoke the used refresh token (making it single-use)
     revoke_token(data)

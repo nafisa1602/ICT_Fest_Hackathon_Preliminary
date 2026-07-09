@@ -207,7 +207,7 @@ def test_refund_notice_tiers_and_rounding():
     assert cancel_48.json()["refund_amount_cents"] == 1001
 
     # 2. >= 24 hours notice -> 50% refund, with proper rounding (using 24h + 10s buffer)
-    # 50% of 1001 is 500.5 cents -> Python's round() uses round-to-even: round(500.5) is 500.
+    # 50% of 1001 is 500.5 cents -> Round half-up: int(500.5 + 0.5) is 501.
     t_24 = datetime.now(timezone.utc) + timedelta(hours=24, seconds=10)
     b_24_res = client.post(
         "/bookings",
@@ -218,7 +218,7 @@ def test_refund_notice_tiers_and_rounding():
     cancel_24 = client.post(f"/bookings/{b_24_id}/cancel", headers=admin_headers)
     assert cancel_24.status_code == 200
     assert cancel_24.json()["refund_percent"] == 50
-    assert cancel_24.json()["refund_amount_cents"] == 500
+    assert cancel_24.json()["refund_amount_cents"] == 501
 
     # 3. Less than 24 hours notice -> 0% refund (using 23h 59m)
     t_12 = datetime.now(timezone.utc) + timedelta(hours=23, minutes=59)

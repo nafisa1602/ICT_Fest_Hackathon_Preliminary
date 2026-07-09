@@ -12,3 +12,4 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./cowork.db")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
