@@ -102,7 +102,7 @@ def revoke_token(payload: dict) -> None:
     # self-expires from Redis instead of growing unboundedly forever.
     ttl = max(payload["exp"] - _now_ts(), 0)
     if ttl > 0:
-        _redis.setex(f"revoked:{payload['jti']}", ttl, "1")
+        _redis.set(f"revoked:{payload['jti']}", "1", ex=ttl)
 
 
 def get_token_payload(request: Request) -> dict:
