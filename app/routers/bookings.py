@@ -15,6 +15,7 @@ from ..serializers import serialize_booking
 from ..services import notifications, ratelimit, reference, stats
 from ..services.refunds import log_refund
 from ..timeutils import iso_utc, parse_input_datetime
+import threading
 
 router = APIRouter(tags=["bookings"])
 
@@ -22,6 +23,7 @@ MIN_DURATION_HOURS = 1
 MAX_DURATION_HOURS = 8
 QUOTA_LIMIT = 3
 QUOTA_WINDOW_HOURS = 24
+_cancel_lock = threading.Lock()
 
 
 def _pricing_warmup() -> None:
@@ -196,15 +198,14 @@ def cancel_booking(
 
     now = datetime.utcnow()
     notice = booking.start_time - now
-    notice_hours = int(notice.total_seconds() // 3600)
-    if notice_hours > 48:
+
+    if notice >= timedelta(hours=48):
         refund_percent = 100
     elif notice >= timedelta(hours=24):
         refund_percent = 50
     else:
-        refund_percent = 50
-
-    refund_amount_cents = round(booking.price_cents * (refund_percent / 100.0))
+        refund_percent = 0
+    (booking.price_cents * refund_percent + 50) // 100
 
     log_refund(db, booking, refund_percent)
 
