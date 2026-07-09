@@ -52,6 +52,13 @@ def test_core_flow():
     )
     assert booking.status_code == 201
     assert booking.json()["price_cents"] == 2000
+    booking_id = booking.json()["id"]
+    booking_start = booking.json()["start_time"]
+
+    # Test retrieving single booking details
+    get_res = client.get(f"/bookings/{booking_id}", headers=headers)
+    assert get_res.status_code == 200
+    assert get_res.json()["start_time"] == booking_start
 
     listing = client.get("/bookings", headers=headers)
     assert listing.status_code == 200
