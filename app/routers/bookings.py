@@ -1,6 +1,6 @@
 """Booking creation, listing, detail and cancellation."""
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -81,7 +81,7 @@ def create_booking(
 
     start = parse_input_datetime(payload.start_time)
     end = parse_input_datetime(payload.end_time)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     if start <= now:
         raise AppError(400, "INVALID_BOOKING_WINDOW", "start_time must be in the future")
@@ -200,7 +200,7 @@ def cancel_booking(
     if booking.status == "cancelled":
         raise AppError(409, "ALREADY_CANCELLED", "Booking already cancelled")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     notice = booking.start_time - now
     if notice >= timedelta(hours=48):
         refund_percent = 100
