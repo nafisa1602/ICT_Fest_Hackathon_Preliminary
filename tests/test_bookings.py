@@ -305,3 +305,24 @@ def test_cache_invalidation_report_on_create():
     report_final = client.get(f"/admin/usage-report?from={date_str}&to={date_str}", headers=admin_headers)
     assert report_final.status_code == 200
     assert report_final.json()["rooms"][0]["confirmed_bookings"] == 1
+
+def test_admin_export_cross_org_bypass():
+    org_a = f"org-{uuid.uuid4().hex}"
+    admin_a_headers = _register_and_login("admin_a", org_a)
+
+    org_b = f"org-{uuid.uuid4().hex}"
+    admin_b_headers = _register_and_login("admin_b", org_b)
+
+    # Org B creates a room
+    room_b = client.post(
+        "/rooms",
+        json={"name": "Org B Room", "capacity": 5, "hourly_rate_cents": 1000},
+        headers=admin_b_headers,
+    )
+    assert room_b.status_code == 201
+    room_b_id = room_b.json()["id"]
+
+    # Admin A attempts to export bookings of Room B (Org B's room)
+    export_res = client.get(f"/admin/export?include_all=true&room_id={room_b_id}", headers=admin_a_headers)
+    assert export_res.status_code == 404
+    assert export_res.json()["code"] == "ROOM_NOT_FOUND"
